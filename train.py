@@ -73,6 +73,10 @@ for epoch_num in range(pretrainEpochs+trainEpochs):
 
         st_time = time.time()
         hist, nbrs, mask, lat_enc, lon_enc, fut, op_mask = data
+        
+        # Ensure the mask is boolean
+        mask = mask.bool()  # Convert mask to bool
+        op_mask = op_mask.bool()  # Convert output mask to bool if necessary
 
         if args['use_cuda']:
             hist = hist.cuda()
