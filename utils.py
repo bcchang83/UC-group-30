@@ -11,8 +11,18 @@ class ngsimDataset(Dataset):
 
 
     def __init__(self, mat_file, t_h=30, t_f=50, d_s=2, enc_size = 64, grid_size = (13,3)):
-        self.D = scp.loadmat(mat_file)['traj']
-        self.T = scp.loadmat(mat_file)['tracks']
+        # self.D = scp.loadmat(mat_file)['traj']
+        # self.T = scp.loadmat(mat_file)['tracks']
+
+        if mat_file[-3:] == "mat":
+            self.D = scp.loadmat(mat_file)["traj"]
+            self.T = scp.loadmat(mat_file)["tracks"]
+        else:
+            self.D = np.load(mat_file, allow_pickle=True)
+            self.T = np.load(mat_file, allow_pickle=True)
+            self.D = self.D.item()["traj"]
+            self.T = self.T.item()["tracks"]
+
         self.t_h = t_h  # length of track history
         self.t_f = t_f  # length of predicted trajectory
         self.d_s = d_s  # down sampling rate of all sequences
