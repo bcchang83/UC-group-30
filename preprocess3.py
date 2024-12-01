@@ -3,7 +3,7 @@ import pandas as pd
 from scipy.io import savemat
 
 # Input files
-us101_files = ["archive/trajectories-0750am-0805am.txt"]
+us101_files = ["trajectories-0750am-0805am.txt"]
 
 files = us101_files
 
@@ -131,7 +131,8 @@ print("Saving mat files...")
 def create_tracks(traj_set):
     max_veh_id = int(max([traj[:, 1].max() for traj in traj_set]))
     max_ds_id = len(traj_set)
-    tracks = np.full((max_ds_id, max_veh_id), None, dtype=object)
+    # tracks = np.full((max_ds_id, max_veh_id), None, dtype=object)
+    tracks = np.array([[None] * max_veh_id for _ in range(max_ds_id)])
 
     for ds_id, traj in enumerate(traj_set, start=1):
         unique_ids = np.unique(traj[:, 1])

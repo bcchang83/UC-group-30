@@ -9,7 +9,7 @@ import math
 
 ## Network Arguments
 args = {}
-args['use_cuda'] = False
+args['use_cuda'] = True
 args['encoder_size'] = 64
 args['decoder_size'] = 128
 args['in_length'] = 16
@@ -43,8 +43,8 @@ crossEnt = torch.nn.BCELoss()
 ## Initialize data loaders
 trSet = ngsimDataset('TrainSet_one.npy')
 valSet = ngsimDataset('ValSet_one.npy')
-trDataloader = DataLoader(trSet,batch_size=batch_size,shuffle=True,num_workers=0,collate_fn=trSet.collate_fn)
-valDataloader = DataLoader(valSet,batch_size=batch_size,shuffle=True,num_workers=0,collate_fn=valSet.collate_fn)
+trDataloader = DataLoader(trSet,batch_size=batch_size,shuffle=True,num_workers=8,collate_fn=trSet.collate_fn)
+valDataloader = DataLoader(valSet,batch_size=batch_size,shuffle=True,num_workers=8,collate_fn=valSet.collate_fn)
 
 
 ## Variables holding train and validation loss values:
@@ -74,9 +74,9 @@ for epoch_num in range(pretrainEpochs+trainEpochs):
         st_time = time.time()
         hist, nbrs, mask, lat_enc, lon_enc, fut, op_mask = data
         
-        # Ensure the mask is boolean
+        # # Ensure the mask is boolean
         mask = mask.bool()  # Convert mask to bool
-        op_mask = op_mask.bool()  # Convert output mask to bool if necessary
+        # op_mask = op_mask.bool()  # Convert output mask to bool if necessary
 
         if args['use_cuda']:
             hist = hist.cuda()
@@ -142,6 +142,7 @@ for epoch_num in range(pretrainEpochs+trainEpochs):
         st_time = time.time()
         hist, nbrs, mask, lat_enc, lon_enc, fut, op_mask = data
 
+        mask = mask.bool()  # Convert mask to bool
 
         if args['use_cuda']:
             hist = hist.cuda()

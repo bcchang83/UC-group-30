@@ -69,8 +69,18 @@ class ngsimDataset(Dataset):
         else:
             if self.T.shape[1]<=vehId-1:
                 return np.empty([0,2])
-            refTrack = self.T[dsId-1][refVehId-1].transpose()
-            vehTrack = self.T[dsId-1][vehId-1].transpose()
+            # refTrack = self.T[dsId-1][refVehId-1].transpose()
+            # vehTrack = self.T[dsId-1][vehId-1].transpose()
+            ## Updated ##
+            refTrack = self.T[dsId - 1][refVehId - 1]
+            vehTrack = self.T[dsId - 1][vehId - 1]
+
+            if refTrack is None or vehTrack is None:
+                return np.empty([0, 2])
+
+            refTrack = refTrack.transpose()
+            vehTrack = vehTrack.transpose()
+            ##
             refPos = refTrack[np.where(refTrack[:,0]==t)][0,1:3]
 
             if vehTrack.size==0 or np.argwhere(vehTrack[:, 0] == t).size==0:
