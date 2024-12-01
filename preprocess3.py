@@ -87,8 +87,8 @@ for i, t in enumerate(traj):
         if ub == ind or lb == ind:
             row[7] = 1
         else:
-            v_hist = (veh_traj[ind, 4] - veh_traj[lb, 4]) / (ind - lb + 1e-6)
-            v_fut = (veh_traj[ub, 4] - veh_traj[ind, 4]) / (ub - ind + 1e-6)
+            v_hist = (veh_traj[ind, 4] - veh_traj[lb, 4] + 1e-6) / (ind - lb + 1e-6)
+            v_fut = (veh_traj[ub, 4] - veh_traj[ind, 4] + 1e-6) / (ub - ind + 1e-6)
             row[7] = 2 if v_fut / v_hist < 0.8 else 1
 
         # Populate grid locations
