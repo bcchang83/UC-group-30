@@ -3,9 +3,23 @@ import pandas as pd
 from scipy.io import savemat
 
 # Input files
-us101_files = ["trajectories-0750am-0805am.txt"]
 
-files = us101_files
+# Example file
+# us101_files = ["trajectories-0750am-0805am.txt"]
+# files = us101_files
+
+# All files
+us101_files = [
+    "us-101/trajectories-0750am-0805am.txt",
+    "us-101/trajectories-0805am-0820am.txt",
+    "us-101/trajectories-0820am-0835am.txt",
+]
+i80_files = [
+    "i-80/trajectories-0400-0415.txt",
+    "i-80/trajectories-0500-0515.txt",
+    "i-80/trajectories-0515-0530.txt",
+]
+files = us101_files + i80_files
 
 column_names = [
     "Vehicle_ID",
@@ -33,6 +47,9 @@ print("Loading data...")
 data = []
 for i, file in enumerate(files):
     traj = pd.read_csv(file, delim_whitespace=True, header=None, names=column_names)
+    # Fix the warning
+    # traj = pd.read_csv(file, sep='\s+', header=None, names=column_names)
+
     traj.insert(0, "DatasetId", i + 1)
     data.append(traj.to_numpy(dtype=np.float32))
 
@@ -113,7 +130,7 @@ print("Splitting into train, validation, and test sets...")
 traj_all = np.vstack(traj)
 traj_tr, traj_val, traj_ts = [], [], []
 
-for i in range(1):
+for i in range(6):
     max_id = int(traj_all[traj_all[:, 0] == i + 1, 1].max())
     ul1, ul2 = int(0.7 * max_id), int(0.8 * max_id)
 
@@ -132,7 +149,7 @@ def create_tracks(traj_set):
     max_veh_id = int(max([traj[:, 1].max() for traj in traj_set]))
     max_ds_id = len(traj_set)
     # tracks = np.full((max_ds_id, max_veh_id), None, dtype=object)
-    tracks = np.array([[None] * max_veh_id for _ in range(max_ds_id)])
+    tracks = np.array([[None for x in range(31)] * max_veh_id for _ in range(max_ds_id)])
 
     for ds_id, traj in enumerate(traj_set, start=1):
         unique_ids = np.unique(traj[:, 1])
@@ -147,8 +164,40 @@ tracks_tr = create_tracks(traj_tr)
 tracks_val = create_tracks(traj_val)
 tracks_ts = create_tracks(traj_ts)
 
+# def filter_edge_cases(traj, tracks):
+#     """
+#     Filter edge cases from trajectory data based on the 3-second history condition.
+#     """
+#     inds = np.zeros(len(traj), dtype=bool)
+
+#     for k in range(len(traj)):
+#         dataset_id = k#traj[k, 0].astype(int)  # Dataset ID
+#         vehicle_id = traj[k,:,1].astype(int)  # Vehicle ID
+#         time_frame = traj[k,:,2]  # Current time frame
+#         veh_idx = vehicle_id - 1
+
+#         track = tracks[dataset_id][
+#             veh_idx
+#         ]  
+#         # Ensure track has at least 31 frames
+#         # if track is not None and len(track[0]) > 30:
+#             # Fetch track for dataset ID and vehicle ID; 30 frames = 3 seconds
+#         if track[0][30] <= time_frame and track[0][-1] > time_frame + 1:
+#             inds[k] = True
+
+#     return traj[inds]
+
+# traj_tr = np.array(traj_tr)
+# traj_val = np.array(traj_val)
+# traj_ts = np.array(traj_ts)
+# # Apply filtering
+# print("Filtering edge cases...")
+# filter_traj_tr = filter_edge_cases(traj_tr, tracks_tr)
+# filter_traj_val = filter_edge_cases(traj_val, tracks_val)
+# filter_traj_ts = filter_edge_cases(traj_ts, tracks_ts)
+
 # Save .mat files
-np.save("TrainSet_one.npy", {"traj": np.vstack(traj_tr), "tracks": tracks_tr})
-np.save("ValSet_one.npy", {"traj": np.vstack(traj_val), "tracks": tracks_val})
-np.save("TestSet_one.npy", {"traj": np.vstack(traj_ts), "tracks": tracks_ts})
+np.save("TrainSet.npy", {"traj": np.vstack(traj_tr), "tracks": tracks_tr})
+np.save("ValSet.npy", {"traj": np.vstack(traj_val), "tracks": tracks_val})
+np.save("TestSet.npy", {"traj": np.vstack(traj_ts), "tracks": tracks_ts})
 print("Done.")

@@ -41,8 +41,8 @@ crossEnt = torch.nn.BCELoss()
 
 
 ## Initialize data loaders
-trSet = ngsimDataset('TrainSet_one.npy')
-valSet = ngsimDataset('ValSet_one.npy')
+trSet = ngsimDataset('TrainSet.npy')
+valSet = ngsimDataset('ValSet.npy')
 trDataloader = DataLoader(trSet,batch_size=batch_size,shuffle=True,num_workers=8,collate_fn=trSet.collate_fn)
 valDataloader = DataLoader(valSet,batch_size=batch_size,shuffle=True,num_workers=8,collate_fn=valSet.collate_fn)
 
