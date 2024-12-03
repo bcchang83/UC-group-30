@@ -26,7 +26,7 @@ args['train_flag'] = False
 
 
 # Evaluation metric:
-metric = 'nll'  #or rmse
+metric = 'nll'  #or rmse or nll
 
 
 # Initialize network
@@ -35,7 +35,7 @@ net.load_state_dict(torch.load('trained_models/cslstm_m.tar'))
 if args['use_cuda']:
     net = net.cuda()
 
-tsSet = ngsimDataset('data/TestSet.mat')
+tsSet = ngsimDataset('TestSet.npy')
 tsDataloader = DataLoader(tsSet,batch_size=128,shuffle=True,num_workers=8,collate_fn=tsSet.collate_fn)
 
 lossVals = torch.zeros(25).cuda()
@@ -55,6 +55,8 @@ for i, data in enumerate(tsDataloader):
         lon_enc = lon_enc.cuda()
         fut = fut.cuda()
         op_mask = op_mask.cuda()
+
+    mask = mask.bool() # added when fixing errors
 
     if metric == 'nll':
         # Forward pass

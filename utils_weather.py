@@ -45,7 +45,7 @@ class ngsimDataset(Dataset):
         neighbors = []
 
         # Get track history 'hist' = ndarray, and future track 'fut' = ndarray
-        hist = self.getHistory(vehId,t,vehId,dsId)
+        hist, weather = self.getHistory(vehId,t,vehId,dsId)
         fut = self.getFuture(vehId,t,dsId)
 
         # Get track histories of all neighbours 'neighbors' = [ndarray,[],ndarray,ndarray]
@@ -54,21 +54,21 @@ class ngsimDataset(Dataset):
 
         # Maneuvers 'lon_enc' = one-hot vector, 'lat_enc = one-hot vector
         lon_enc = np.zeros([2])
-        lon_enc[int(self.D[idx, 7] - 1)] = 1
+        lon_enc[int(self.D[idx, 7+3] - 1)] = 1
         lat_enc = np.zeros([3])
-        lat_enc[int(self.D[idx, 6] - 1)] = 1
+        lat_enc[int(self.D[idx, 6+3] - 1)] = 1
 
-        return hist,fut,neighbors,lat_enc,lon_enc
+        return hist,weather,fut,neighbors,lat_enc,lon_enc
 
 
 
     ## Helper function to get track history
     def getHistory(self,vehId,t,refVehId,dsId):
         if vehId == 0:
-            return np.empty([0,2])
+            return np.empty([0,2]), np.empty([0,3])
         else:
             if self.T.shape[1]<=vehId-1:
-                return np.empty([0,2])
+                return np.empty([0,2]),np.empty([0,3])
             # refTrack = self.T[dsId-1][refVehId-1].transpose()
             # vehTrack = self.T[dsId-1][vehId-1].transpose()
             ## Updated ##
@@ -76,7 +76,7 @@ class ngsimDataset(Dataset):
             vehTrack = self.T[dsId - 1][vehId - 1]
 
             if refTrack is None or vehTrack is None:
-                return np.empty([0, 2])
+                return np.empty([0, 2]), np.empty([0,3])
 
             refTrack = refTrack.transpose()
             vehTrack = vehTrack.transpose()
@@ -84,15 +84,16 @@ class ngsimDataset(Dataset):
             refPos = refTrack[np.where(refTrack[:,0]==t)][0,1:3]
 
             if vehTrack.size==0 or np.argwhere(vehTrack[:, 0] == t).size==0:
-                 return np.empty([0,2])
+                 return np.empty([0,2]), np.empty([0,3])
             else:
                 stpt = np.maximum(0, np.argwhere(vehTrack[:, 0] == t).item() - self.t_h)
                 enpt = np.argwhere(vehTrack[:, 0] == t).item() + 1
-                hist = vehTrack[stpt:enpt:self.d_s,1:3]-refPos
-                # hist_w = vehTrack[stpt:enpt:self.d_s,-3:]-refPos
+                hist = vehTrack[stpt:enpt:self.d_s,1:3]-refPos#get future
+                weather = vehTrack[stpt:enpt:self.d_s,-3:]
             if len(hist) < self.t_h//self.d_s + 1:
-                return np.empty([0,2])
-            return hist
+                return np.empty([0,2]), np.empty([0,3])
+            return hist, weather
+        
 
 
 
@@ -126,6 +127,7 @@ class ngsimDataset(Dataset):
 
         # Initialize history, history lengths, future, output mask, lateral maneuver and longitudinal maneuver batches:
         hist_batch = torch.zeros(maxlen,len(samples),2)
+        weather_batch = torch.zeros(maxlen,len(samples),3)
         fut_batch = torch.zeros(self.t_f//self.d_s,len(samples),2)
         op_mask_batch = torch.zeros(self.t_f//self.d_s,len(samples),2)
         lat_enc_batch = torch.zeros(len(samples),3)
@@ -133,11 +135,14 @@ class ngsimDataset(Dataset):
 
 
         count = 0
-        for sampleId,(hist, fut, nbrs, lat_enc, lon_enc) in enumerate(samples):
+        for sampleId,(hist, weather, fut, nbrs, lat_enc, lon_enc) in enumerate(samples):
 
             # Set up history, future, lateral maneuver and longitudinal maneuver batches:
             hist_batch[0:len(hist),sampleId,0] = torch.from_numpy(hist[:, 0])
             hist_batch[0:len(hist), sampleId, 1] = torch.from_numpy(hist[:, 1])
+            weather_batch[0:len(weather), sampleId, 0] = torch.from_numpy(weather[:, 0])
+            weather_batch[0:len(weather), sampleId, 1] = torch.from_numpy(weather[:, 1])
+            weather_batch[0:len(weather), sampleId, 2] = torch.from_numpy(weather[:, 2])
             fut_batch[0:len(fut), sampleId, 0] = torch.from_numpy(fut[:, 0])
             fut_batch[0:len(fut), sampleId, 1] = torch.from_numpy(fut[:, 1])
             op_mask_batch[0:len(fut),sampleId,:] = 1
@@ -154,7 +159,7 @@ class ngsimDataset(Dataset):
                     mask_batch[sampleId,pos[1],pos[0],:] = torch.ones(self.enc_size).byte()
                     count+=1
 
-        return hist_batch, nbrs_batch, mask_batch, lat_enc_batch, lon_enc_batch, fut_batch, op_mask_batch
+        return hist_batch, weather_batch, nbrs_batch, mask_batch, lat_enc_batch, lon_enc_batch, fut_batch, op_mask_batch
 
 #________________________________________________________________________________________________________________________________________
 
