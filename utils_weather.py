@@ -41,7 +41,7 @@ class ngsimDataset(Dataset):
         dsId = self.D[idx, 0].astype(int)
         vehId = self.D[idx, 1].astype(int)
         t = self.D[idx, 2]
-        grid = self.D[idx,8:]
+        grid = self.D[idx,8+3:]
         neighbors = []
 
         # Get track history 'hist' = ndarray, and future track 'fut' = ndarray
@@ -50,7 +50,8 @@ class ngsimDataset(Dataset):
 
         # Get track histories of all neighbours 'neighbors' = [ndarray,[],ndarray,ndarray]
         for i in grid:
-            neighbors.append(self.getHistory(i.astype(int), t,vehId,dsId))
+            nbr_hist, _ = self.getHistory(i.astype(int), t,vehId,dsId)
+            neighbors.append(nbr_hist)
 
         # Maneuvers 'lon_enc' = one-hot vector, 'lat_enc = one-hot vector
         lon_enc = np.zeros([2])
@@ -113,7 +114,7 @@ class ngsimDataset(Dataset):
 
         # Initialize neighbors and neighbors length batches:
         nbr_batch_size = 0
-        for _,_,nbrs,_,_ in samples:
+        for _,_,_,nbrs,_,_ in samples:
             nbr_batch_size += sum([len(nbrs[i])!=0 for i in range(len(nbrs))])
         maxlen = self.t_h//self.d_s + 1
         nbrs_batch = torch.zeros(maxlen,nbr_batch_size,2)
@@ -152,6 +153,8 @@ class ngsimDataset(Dataset):
             # Set up neighbor, neighbor sequence length, and mask batches:
             for id,nbr in enumerate(nbrs):
                 if len(nbr)!=0:
+                    # print(nbr)
+                    # print(np.shape(nbr))
                     nbrs_batch[0:len(nbr),count,0] = torch.from_numpy(nbr[:, 0])
                     nbrs_batch[0:len(nbr), count, 1] = torch.from_numpy(nbr[:, 1])
                     pos[0] = id % self.grid_size[0]

@@ -1,6 +1,6 @@
 from __future__ import print_function
 import torch
-from model import highwayNet
+from model_weather import highwayNet
 from utils_weather import ngsimDataset,maskedNLL,maskedMSE,maskedNLLTest
 from torch.utils.data import DataLoader
 import time
@@ -23,7 +23,8 @@ args['num_lat_classes'] = 3
 args['num_lon_classes'] = 2
 args['use_maneuvers'] = True
 args['train_flag'] = True
-
+# New part #
+args['weather_size'] = 3
 
 
 # Initialize network
@@ -73,7 +74,7 @@ for epoch_num in range(pretrainEpochs+trainEpochs):
 
         st_time = time.time()
         hist, weather, nbrs, mask, lat_enc, lon_enc, fut, op_mask = data
-        print("123")
+        # print("123")
         # # Ensure the mask is boolean
         mask = mask.bool()  # Convert mask to bool
         # op_mask = op_mask.bool()  # Convert output mask to bool if necessary
@@ -90,7 +91,7 @@ for epoch_num in range(pretrainEpochs+trainEpochs):
 
         # Forward pass
         if args['use_maneuvers']:
-            fut_pred, lat_pred, lon_pred = net(hist, nbrs, mask, lat_enc, lon_enc)
+            fut_pred, lat_pred, lon_pred = net(hist, weather, nbrs, mask, lat_enc, lon_enc)
             # Pre-train with MSE loss to speed up training
             if epoch_num < pretrainEpochs:
                 l = maskedMSE(fut_pred, fut, op_mask)
@@ -100,7 +101,7 @@ for epoch_num in range(pretrainEpochs+trainEpochs):
                 avg_lat_acc += (torch.sum(torch.max(lat_pred.data, 1)[1] == torch.max(lat_enc.data, 1)[1])).item() / lat_enc.size()[0]
                 avg_lon_acc += (torch.sum(torch.max(lon_pred.data, 1)[1] == torch.max(lon_enc.data, 1)[1])).item() / lon_enc.size()[0]
         else:
-            fut_pred = net(hist, nbrs, mask, lat_enc, lon_enc)
+            fut_pred = net(hist, weather, nbrs, mask, lat_enc, lon_enc)
             if epoch_num < pretrainEpochs:
                 l = maskedMSE(fut_pred, fut, op_mask)
             else:
@@ -141,12 +142,13 @@ for epoch_num in range(pretrainEpochs+trainEpochs):
 
     for i, data  in enumerate(valDataloader):
         st_time = time.time()
-        hist, nbrs, mask, lat_enc, lon_enc, fut, op_mask = data
+        hist, weather, nbrs, mask, lat_enc, lon_enc, fut, op_mask = data
 
         mask = mask.bool()  # Convert mask to bool
 
         if args['use_cuda']:
             hist = hist.cuda()
+            weather = weather.cuda()
             nbrs = nbrs.cuda()
             mask = mask.cuda()
             lat_enc = lat_enc.cuda()
@@ -159,16 +161,16 @@ for epoch_num in range(pretrainEpochs+trainEpochs):
             if epoch_num < pretrainEpochs:
                 # During pre-training with MSE loss, validate with MSE for true maneuver class trajectory
                 net.train_flag = True
-                fut_pred, _ , _ = net(hist, nbrs, mask, lat_enc, lon_enc)
+                fut_pred, _ , _ = net(hist, weather, nbrs, mask, lat_enc, lon_enc)
                 l = maskedMSE(fut_pred, fut, op_mask)
             else:
                 # During training with NLL loss, validate with NLL over multi-modal distribution
-                fut_pred, lat_pred, lon_pred = net(hist, nbrs, mask, lat_enc, lon_enc)
+                fut_pred, lat_pred, lon_pred = net(hist, weather, nbrs, mask, lat_enc, lon_enc)
                 l = maskedNLLTest(fut_pred, lat_pred, lon_pred, fut, op_mask,avg_along_time = True)
                 avg_val_lat_acc += (torch.sum(torch.max(lat_pred.data, 1)[1] == torch.max(lat_enc.data, 1)[1])).item() / lat_enc.size()[0]
                 avg_val_lon_acc += (torch.sum(torch.max(lon_pred.data, 1)[1] == torch.max(lon_enc.data, 1)[1])).item() / lon_enc.size()[0]
         else:
-            fut_pred = net(hist, nbrs, mask, lat_enc, lon_enc)
+            fut_pred = net(hist, weather, nbrs, mask, lat_enc, lon_enc)
             if epoch_num < pretrainEpochs:
                 l = maskedMSE(fut_pred, fut, op_mask)
             else:

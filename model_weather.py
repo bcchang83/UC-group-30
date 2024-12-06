@@ -35,11 +35,16 @@ class highwayNet(nn.Module):
         self.num_lat_classes = args['num_lat_classes']
         self.num_lon_classes = args['num_lon_classes']
         self.soc_embedding_size = (((args['grid_size'][0]-4)+1)//2)*self.conv_3x1_depth
-
+        # Size of weather data (number of features in weather input)
+        self.weather_size = args['weather_size']
+                                 
         ## Define network weights
 
         # Input embedding layer
         self.ip_emb = torch.nn.Linear(2,self.input_embedding_size)
+        
+        # Define a layer to process weather data
+        self.weather_emb = torch.nn.Linear(self.weather_size, self.dyn_embedding_size)
 
         # Encoder LSTM
         self.enc_lstm = torch.nn.LSTM(self.input_embedding_size,self.encoder_size,1)
@@ -57,14 +62,14 @@ class highwayNet(nn.Module):
 
         # Decoder LSTM
         if self.use_maneuvers:
-            self.dec_lstm = torch.nn.LSTM(self.soc_embedding_size + self.dyn_embedding_size + self.num_lat_classes + self.num_lon_classes, self.decoder_size)
+            self.dec_lstm = torch.nn.LSTM(self.soc_embedding_size + 2*self.dyn_embedding_size + self.num_lat_classes + self.num_lon_classes, self.decoder_size)
         else:
-            self.dec_lstm = torch.nn.LSTM(self.soc_embedding_size + self.dyn_embedding_size, self.decoder_size)
+            self.dec_lstm = torch.nn.LSTM(self.soc_embedding_size + 2*self.dyn_embedding_size, self.decoder_size)
 
         # Output layers:
         self.op = torch.nn.Linear(self.decoder_size,5)
-        self.op_lat = torch.nn.Linear(self.soc_embedding_size + self.dyn_embedding_size, self.num_lat_classes)
-        self.op_lon = torch.nn.Linear(self.soc_embedding_size + self.dyn_embedding_size, self.num_lon_classes)
+        self.op_lat = torch.nn.Linear(self.soc_embedding_size + 2*self.dyn_embedding_size, self.num_lat_classes)
+        self.op_lon = torch.nn.Linear(self.soc_embedding_size + 2*self.dyn_embedding_size, self.num_lon_classes)
 
         # Activations:
         self.leaky_relu = torch.nn.LeakyReLU(0.1)
@@ -73,11 +78,14 @@ class highwayNet(nn.Module):
 
 
     ## Forward Pass
-    def forward(self,hist,nbrs,masks,lat_enc,lon_enc):
-
+    def forward(self,hist,weather,nbrs,masks,lat_enc,lon_enc):
+        
         ## Forward pass hist:
         _,(hist_enc,_) = self.enc_lstm(self.leaky_relu(self.ip_emb(hist)))
         hist_enc = self.leaky_relu(self.dyn_emb(hist_enc.view(hist_enc.shape[1],hist_enc.shape[2])))
+
+        _,(weather_enc,_) = self.enc_lstm(self.leaky_relu(self.weather_emb(weather)))
+        weather_enc = self.leaky_relu(self.dyn_emb(weather_enc.view(weather_enc.shape[1],weather_enc.shape[2])))
 
         ## Forward pass nbrs
         _, (nbrs_enc,_) = self.enc_lstm(self.leaky_relu(self.ip_emb(nbrs)))
@@ -96,9 +104,28 @@ class highwayNet(nn.Module):
         # soc_enc = soc_enc.contiguous()
         # soc_enc = soc_enc.view(-1, self.soc_conv_depth * self.grid_size[0] * self.grid_size[1])
         # soc_enc = self.leaky_relu(self.soc_fc(soc_enc))
+        
+        # New part #
+        # ## Forward pass weather:
+        # weather_enc = self.leaky_relu(self.weather_emb(weather))
+
+        # Test
+        # print("soc_enc shape:", soc_enc.shape)
+        # print("hist_enc shape:", hist_enc.shape)
+        # print("weather_enc shape:", weather_enc.shape)
+
+
+        # ## Concatenate encodings:
+        # enc = torch.cat((soc_enc, hist_enc, weather_enc), 1)
+
+
+
+        enc = torch.cat((soc_enc, hist_enc, weather_enc), 1)
+
+
 
         ## Concatenate encodings:
-        enc = torch.cat((soc_enc,hist_enc),1)
+        # enc = torch.cat((soc_enc,hist_enc),1)
 
 
         if self.use_maneuvers:

@@ -92,11 +92,11 @@ for i, t in enumerate(traj):
         lb = max(0, ind - 40)  # lower bound for time (-4 seconds)
 
         if veh_traj[ub, 5] > veh_traj[ind, 5] or veh_traj[ind, 5] > veh_traj[lb, 5]:
-            row[6] = 3  # turn right
+            row[6+3] = 3  # turn right
         elif veh_traj[ub, 5] < veh_traj[ind, 5] or veh_traj[ind, 5] < veh_traj[lb, 5]:
-            row[6] = 2  # turn left
+            row[6+3] = 2  # turn left
         else:
-            row[6] = 1  # no change direction
+            row[6+3] = 1  # no change direction
 
         # Get longitudinal maneuver
         ub = min(len(veh_traj) - 1, ind + 50)
@@ -104,11 +104,11 @@ for i, t in enumerate(traj):
 
         # Keep speed
         if ub == ind or lb == ind:
-            row[7] = 1
+            row[7+3] = 1
         else:
             v_hist = (veh_traj[ind, 4] - veh_traj[lb, 4] + 1e-6) / (ind - lb + 1e-6)
             v_fut = (veh_traj[ub, 4] - veh_traj[ind, 4] + 1e-6) / (ub - ind + 1e-6)
-            row[7] = 2 if v_fut / v_hist < 0.8 else 1
+            row[7+3] = 2 if v_fut / v_hist < 0.8 else 1
 
         # Populate grid locations
         t_frame = veh_times[i][str(int(time))]
@@ -121,7 +121,7 @@ for i, t in enumerate(traj):
                 y = f[4] - row[4]
                 if abs(y) < 90:
                     grid_ind = start_idx + int(round((y + 90) / 15))
-                    row[8 + grid_ind] = f[1]
+                    row[8 + grid_ind +3] = f[1]
 
         update_grid(frame_l, 0)
         update_grid(frame_ego, 13)
