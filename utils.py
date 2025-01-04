@@ -147,7 +147,7 @@ class ngsimDataset(Dataset):
             # Set up neighbor, neighbor sequence length, and mask batches:
             for id,nbr in enumerate(nbrs):
                 if len(nbr)!=0:
-                    print(nbr)
+                    # print(nbr)
                     nbrs_batch[0:len(nbr),count,0] = torch.from_numpy(nbr[:, 0])
                     nbrs_batch[0:len(nbr), count, 1] = torch.from_numpy(nbr[:, 1])
                     pos[0] = id % self.grid_size[0]
