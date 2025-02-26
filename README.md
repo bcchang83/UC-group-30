@@ -54,7 +54,7 @@ Follow these steps to set up your environment for the project.
 
 ```bash
 # 1. Clone the Repository  
-git clone https://github.com/your-username/your-repository.git
+git clone https://github.com/bcchang83/Weather-Enchanced-Multi-Input-LSTM-for-Trajectory-Prediction.git
 cd your-repository
 
 # 2. (Option 1) Create a Virtual Environment using venv  
